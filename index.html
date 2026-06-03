@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PMAX · Client Referral Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONFIG — chỉ cần đổi 1 dòng URL này sau khi deploy Apps Script
+     ============================================================ */
+  /* (URL được set trong <script> ở cuối file) */
+
+  :root{
+    --navy:#0B1F4D;
+    --blue:#2238E8;
+    --blue-bright:#3D5BFF;
+    --orange:#FF5A1F;
+    --orange-soft:#FFEDE4;
+    --bg:#EEF1F9;
+    --ink:#0B1633;
+    --muted:#62708F;
+    --line:#E3E8F4;
+    --white:#fff;
+    --ok:#13B36A;
+    --err:#E1453C;
+    --radius:16px;
+    --shadow:0 24px 60px -22px rgba(11,31,77,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Be Vietnam Pro',sans-serif;
+    background:
+      radial-gradient(900px 500px at 88% -8%, rgba(61,91,255,.12), transparent 60%),
+      radial-gradient(700px 400px at -5% 105%, rgba(255,90,31,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:32px 18px 64px;
+    min-height:100%;
+  }
+  .shell{width:100%;max-width:660px}
+
+  /* ---------- Header band ---------- */
+  .band{
+    position:relative;overflow:hidden;
+    border-radius:var(--radius) var(--radius) 0 0;
+    background:linear-gradient(120deg,var(--navy) 0%, var(--blue) 70%);
+    padding:30px 30px 26px;color:#fff;
+  }
+  .band::after{
+    content:"";position:absolute;right:-40px;top:-40px;width:240px;height:240px;
+    background:
+      conic-gradient(from 200deg, var(--orange), #ff9a5c, var(--blue-bright), var(--orange));
+    filter:blur(2px);opacity:.35;border-radius:30% 70% 70% 30%/30% 30% 70% 70%;
+    transform:rotate(8deg);
+  }
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;background:rgba(255,255,255,.14);
+    padding:6px 12px;border-radius:999px;backdrop-filter:blur(6px);position:relative;z-index:1}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 4px rgba(255,90,31,.25)}
+  h1{font-size:30px;line-height:1.08;font-weight:800;margin-top:14px;position:relative;z-index:1}
+  h1 .accent{color:#ffd9c7}
+  .sub{margin-top:10px;max-width:460px;font-size:14px;line-height:1.55;color:#dfe6ff;position:relative;z-index:1}
+
+  /* ---------- Progress ---------- */
+  .progress{background:var(--white);padding:18px 30px 4px;border-bottom:1px solid var(--line)}
+  .steps{display:flex;gap:8px}
+  .step{flex:1;display:flex;flex-direction:column;gap:8px}
+  .step .bar{height:5px;border-radius:99px;background:var(--line);transition:.4s}
+  .step.active .bar,.step.done .bar{background:linear-gradient(90deg,var(--blue),var(--blue-bright))}
+  .step.done .bar{background:var(--ok)}
+  .step .lbl{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  .step.active .lbl{color:var(--blue)}
+  .step.done .lbl{color:var(--ok)}
+
+  /* ---------- Card body ---------- */
+  .card{background:var(--white);border-radius:0 0 var(--radius) var(--radius);
+    box-shadow:var(--shadow);padding:30px}
+  .panel{display:none;animation:fade .45s ease both}
+  .panel.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .sec-tag{font-size:12px;font-weight:700;color:var(--orange);letter-spacing:.1em;text-transform:uppercase}
+  .sec-title{font-size:20px;font-weight:800;margin:6px 0 4px}
+  .sec-desc{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:22px}
+
+  .field{margin-bottom:20px}
+  .field > label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+  .req{color:var(--err);margin-left:2px}
+  .hint{font-size:12.5px;color:var(--muted);margin:-3px 0 9px;line-height:1.5}
+  input[type=text],input[type=email],textarea{
+    width:100%;font-family:inherit;font-size:14.5px;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;background:#fbfcff;
+    transition:.18s;
+  }
+  textarea{resize:vertical;min-height:96px;line-height:1.5}
+  input:focus,textarea:focus{outline:none;border-color:var(--blue-bright);
+    background:#fff;box-shadow:0 0 0 4px rgba(61,91,255,.13)}
+  input.bad,textarea.bad{border-color:var(--err);background:#fff6f5}
+
+  /* option cards (radio / checkbox) */
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--line);
+    border-radius:11px;padding:12px 14px;cursor:pointer;background:#fbfcff;transition:.16s;font-size:14px}
+  .opt:hover{border-color:#c4cdf0;background:#fff}
+  .opt input{margin-top:2px;width:17px;height:17px;accent-color:var(--blue);flex:none;cursor:pointer}
+  .opt.sel{border-color:var(--blue);background:#eef1ff}
+  .opt .otxt{flex:1}
+  .opt .otherbox{margin-top:8px;display:none}
+  .opt.sel .otherbox{display:block}
+
+  .err-msg{color:var(--err);font-size:12.5px;margin-top:7px;display:none}
+  .err-msg.show{display:block}
+
+  /* ---------- Nav ---------- */
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px}
+  .btn{font-family:inherit;font-weight:700;font-size:14.5px;border:none;border-radius:11px;
+    padding:13px 22px;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:8px}
+  .btn-primary{background:var(--orange);color:#fff;box-shadow:0 10px 22px -8px rgba(255,90,31,.6)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 26px -8px rgba(255,90,31,.65)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .btn-ghost{background:transparent;color:var(--muted)}
+  .btn-ghost:hover{color:var(--ink)}
+  .btn-ghost.hide{visibility:hidden}
+
+  /* ---------- Success ---------- */
+  .success{text-align:center;padding:18px 6px}
+  .check{width:74px;height:74px;border-radius:50%;margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--ok),#0e9a59);display:grid;place-items:center;
+    box-shadow:0 16px 30px -10px rgba(19,179,106,.6);animation:pop .5s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  .check svg{width:36px;height:36px;stroke:#fff;stroke-width:3.5;fill:none}
+  .success h2{font-size:24px;font-weight:800}
+  .success p{color:var(--muted);font-size:14.5px;line-height:1.6;margin:10px auto 0;max-width:420px}
+  .footnote{text-align:center;font-size:12px;color:var(--muted);margin-top:20px}
+
+  @media (max-width:560px){
+    body{padding:0}
+    .shell{max-width:100%}
+    .band,.card,.progress{border-radius:0}
+    .band{padding:26px 22px}
+    h1{font-size:25px}
+    .card{padding:24px 20px}
+    .step .lbl{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="band">
+    <span class="kicker"><span class="dot"></span>PMAX · Total Marketing Partner</span>
+    <h1>Client Referral <span class="accent">Program</span></h1>
+    <p class="sub">Giới thiệu khách hàng tiềm năng cho PMAX — vừa kiếm thêm thu nhập chủ động, vừa xây dựng quan hệ chất lượng cho riêng bạn. Điền đầy đủ thông tin để tụi mình đảm bảo quyền lợi cho bạn nhé 👏</p>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress">
+    <div class="steps">
+      <div class="step active" data-s="1"><div class="bar"></div><div class="lbl">1 · Nhân viên</div></div>
+      <div class="step" data-s="2"><div class="bar"></div><div class="lbl">2 · Khách hàng</div></div>
+      <div class="step" data-s="3"><div class="bar"></div><div class="lbl">3 · Giải pháp</div></div>
+    </div>
+  </div>
+
+  <!-- CARD -->
+  <div class="card">
+
+    <!-- ===== STEP 1: THÔNG TIN NHÂN VIÊN ===== -->
+    <section class="panel show" id="p1">
+      <div class="sec-tag">Section 1 / 3</div>
+      <div class="sec-title">Thông tin nhân viên</div>
+      <div class="sec-desc">Thông tin của bạn — người giới thiệu khách hàng cho PMAX.</div>
+
+      <div class="field">
+        <label>Email PMAX của bạn <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="email@pmax.vn" />
+        <div class="err-msg" id="e-email">Vui lòng nhập email hợp lệ.</div>
+      </div>
+      <div class="field">
+        <label>Họ và tên của bạn <span class="req">*</span></label>
+        <input type="text" id="hoTen" placeholder="Nguyễn Văn A" />
+        <div class="err-msg" id="e-hoTen">Vui lòng nhập họ tên.</div>
+      </div>
+      <div class="field">
+        <label>Mã số nhân viên (MSNV) <span class="req">*</span></label>
+        <input type="text" id="maSoNV" placeholder="VD: PMX0123" />
+        <div class="err-msg" id="e-maSoNV">Vui lòng nhập mã số nhân viên.</div>
+      </div>
+
+      <div class="nav">
+        <button class="btn btn-ghost hide">Quay lại</button>
+        <button class="btn btn-primary" onclick="next(1)">Tiếp tục →</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 2: THÔNG TIN KHÁCH HÀNG ===== -->
+    <section class="panel" id="p2">
+      <div class="sec-tag">Section 2 / 3</div>
+      <div class="sec-title">Thông tin khách hàng</div>
+      <div class="sec-desc">Mỗi form chỉ điền 1 khách hàng thôi nhen.</div>
+
+      <div class="field">
+        <label>Tên công ty của khách hàng bạn muốn giới thiệu <span class="req">*</span></label>
+        <input type="text" id="tenCongTy" placeholder="VD: Công ty TNHH ABC" />
+        <div class="err-msg" id="e-tenCongTy">Vui lòng nhập tên công ty.</div>
+      </div>
+
+      <div class="field">
+        <label>Thông tin liên hệ của khách hàng <span class="req">*</span></label>
+        <div class="hint">Cú pháp: <b>Họ tên – Title – Số điện thoại – Email</b><br>
+        VD: Nguyễn Văn A, Marketing Director, 0900999000, anguyen@congty.com</div>
+        <textarea id="thongTinLienHe" placeholder="Nguyễn Văn A, Marketing Director, 0900999000, anguyen@congty.com"></textarea>
+        <div class="err-msg" id="e-thongTinLienHe">Vui lòng nhập thông tin liên hệ.</div>
+      </div>
+
+      <div class="field">
+        <label>Mối quan hệ của bạn với khách hàng trên <span class="req">*</span></label>
+        <div class="opts" id="grp-moiQuanHe" data-other="moiQuanHeOther">
+          <label class="opt"><input type="radio" name="moiQuanHe" value="Khách hàng cũ của PMAX"><span class="otxt">Khách hàng là khách hàng cũ của PMAX</span></label>
+          <label class="opt"><input type="radio" name="moiQuanHe" value="Vendor/partner cũ của PMAX"><span class="otxt">Khách hàng là vendor/partner cũ của PMAX</span></label>
+          <label class="opt"><input type="radio" name="moiQuanHe" value="Được vendor/partner hiện tại hoặc cũ giới thiệu"><span class="otxt">Khách hàng được vendor/partner hiện tại hoặc cũ của PMAX giới thiệu</span></label>
+          <label class="opt"><input type="radio" name="moiQuanHe" value="Nhân viên cũ của PMAX"><span class="otxt">Khách hàng là nhân viên cũ của PMAX</span></label>
+          <label class="opt"><input type="radio" name="moiQuanHe" value="Mối quan hệ cá nhân"><span class="otxt">Mối quan hệ cá nhân (gia đình, bạn bè ngoài PMAX, đồng nghiệp cũ không làm tại PMAX…)</span></label>
+          <label class="opt"><input type="radio" name="moiQuanHe" value="__other__"><span class="otxt">Khác<input type="text" class="otherbox" placeholder="Ghi rõ mối quan hệ…"></span></label>
+        </div>
+        <div class="err-msg" id="e-moiQuanHe">Vui lòng chọn mối quan hệ.</div>
+      </div>
+
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="prev(2)">← Quay lại</button>
+        <button class="btn btn-primary" onclick="next(2)">Tiếp tục →</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 3: GIẢI PHÁP KHÁCH HÀNG QUAN TÂM ===== -->
+    <section class="panel" id="p3">
+      <div class="sec-tag">Section 3 / 3</div>
+      <div class="sec-title">Giải pháp khách hàng quan tâm</div>
+      <div class="sec-desc">Các giải pháp mà khách hàng đang quan tâm — chọn tất cả mục phù hợp.</div>
+
+      <div class="field">
+        <label>Solutions Fit với PMAX <span class="req">*</span></label>
+        <div class="hint">VD: Lead Gen – Tăng lead & tỷ lệ chuyển đổi trên Facebook & Instagram</div>
+        <div class="opts" id="grp-solutionsFit" data-other="solutionsFitOther">
+          <label class="opt"><input type="checkbox" value="Branding"><span class="otxt">Branding</span></label>
+          <label class="opt"><input type="checkbox" value="Ecommerce Socom"><span class="otxt">Ecommerce Socom</span></label>
+          <label class="opt"><input type="checkbox" value="Lead Generation"><span class="otxt">Lead Generation</span></label>
+          <label class="opt"><input type="checkbox" value="App"><span class="otxt">App</span></label>
+          <label class="opt"><input type="checkbox" value="Consulting"><span class="otxt">Consulting</span></label>
+          <label class="opt"><input type="checkbox" value="Data / Tech"><span class="otxt">Data / Tech</span></label>
+          <label class="opt"><input type="checkbox" value="__other__"><span class="otxt">Khác<input type="text" class="otherbox" placeholder="Ghi rõ…"></span></label>
+        </div>
+        <div class="err-msg" id="e-solutionsFit">Vui lòng chọn ít nhất 1 giải pháp.</div>
+      </div>
+
+      <div class="field">
+        <label>Product Fit với PMAX <span class="req">*</span></label>
+        <div class="opts" id="grp-productFit" data-other="productFitOther">
+          <label class="opt"><input type="checkbox" value="Media"><span class="otxt">Media</span></label>
+          <label class="opt"><input type="checkbox" value="Creative"><span class="otxt">Creative</span></label>
+          <label class="opt"><input type="checkbox" value="CCM"><span class="otxt">CCM</span></label>
+          <label class="opt"><input type="checkbox" value="Concept"><span class="otxt">Concept</span></label>
+          <label class="opt"><input type="checkbox" value="Strategy"><span class="otxt">Strategy</span></label>
+          <label class="opt"><input type="checkbox" value="MCN - Booking Influencer"><span class="otxt">MCN – Booking Influencer</span></label>
+          <label class="opt"><input type="checkbox" value="MCN - Livestream"><span class="otxt">MCN – Livestream</span></label>
+          <label class="opt"><input type="checkbox" value="__other__"><span class="otxt">Khác<input type="text" class="otherbox" placeholder="Ghi rõ…"></span></label>
+        </div>
+        <div class="err-msg" id="e-productFit">Vui lòng chọn ít nhất 1 product.</div>
+      </div>
+
+      <div class="field">
+        <label>Thị trường khách hàng muốn triển khai dự án <span class="req">*</span></label>
+        <div class="opts" id="grp-thiTruong" data-other="thiTruongOther">
+          <label class="opt"><input type="checkbox" value="Việt Nam"><span class="otxt">Việt Nam</span></label>
+          <label class="opt"><input type="checkbox" value="Mỹ"><span class="otxt">Mỹ</span></label>
+          <label class="opt"><input type="checkbox" value="Úc"><span class="otxt">Úc</span></label>
+          <label class="opt"><input type="checkbox" value="Châu Âu"><span class="otxt">Châu Âu</span></label>
+          <label class="opt"><input type="checkbox" value="__other__"><span class="otxt">Khác<input type="text" class="otherbox" placeholder="Ghi rõ thị trường…"></span></label>
+        </div>
+        <div class="err-msg" id="e-thiTruong">Vui lòng chọn ít nhất 1 thị trường.</div>
+      </div>
+
+      <div class="field">
+        <label>Context giới thiệu &amp; mối quan hệ với khách hàng <span class="req">*</span></label>
+        <div class="hint"><b>Bắt buộc theo policy</b> để team Growth xác định đúng quyền lợi hoa hồng của bạn. Ghi rõ: bạn quen đầu mối này thế nào, đã/đang trao đổi gì, và bối cảnh nhu cầu của khách (ngân sách/timeline nếu biết).</div>
+        <textarea id="ghiChu" placeholder="VD: Anh A là bạn học cũ của mình, hiện là Marketing Director tại công ty. Mình đã trao đổi sơ về nhu cầu chạy Lead Gen Q3, ngân sách dự kiến ~400tr/tháng, cần proposal trong 2 tuần…"></textarea>
+        <div class="err-msg" id="e-ghiChu">Vui lòng ghi rõ context giới thiệu (bắt buộc theo policy).</div>
+      </div>
+
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="prev(3)">← Quay lại</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">Gửi đăng ký ✓</button>
+      </div>
+    </section>
+
+    <!-- ===== SUCCESS ===== -->
+    <section class="panel" id="pDone">
+      <div class="success">
+        <div class="check"><svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6"/></svg></div>
+        <h2>Đăng ký thành công 🎉</h2>
+        <p>Cảm ơn bạn đã giới thiệu khách hàng cho PMAX. Team Partnership sẽ rà soát và liên hệ để đảm bảo quyền lợi referral của bạn. Bạn có thể đóng tab này hoặc gửi tiếp một khách hàng khác.</p>
+        <div class="nav" style="justify-content:center;margin-top:24px">
+          <button class="btn btn-primary" onclick="location.reload()">Gửi khách hàng khác</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <div class="footnote">© PMAX · Total Marketing Partner — Client Referral Program 2026</div>
+</div>
+
+<script>
+/* ============================================================
+   ⚙️  DÁN URL WEB APP CỦA APPS SCRIPT VÀO ĐÂY
+   ============================================================ */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/1TwRJhS4mywMcpfOkBdykMzCagyF6z54j7-WRYKl-Bq8VBsWT0N1s0Sfk/1";
+
+/* ---------- option card UI sync ---------- */
+document.querySelectorAll('.opt input').forEach(inp=>{
+  inp.addEventListener('change',()=>{
+    const group = inp.closest('.opts');
+    if(inp.type==='radio'){
+      group.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+    }
+    inp.closest('.opt').classList.toggle('sel', inp.checked);
+    // focus other-input when "Khác" selected
+    if(inp.value==='__other__' && inp.checked){
+      const box = inp.closest('.opt').querySelector('.otherbox');
+      if(box) setTimeout(()=>box.focus(),50);
+    }
+  });
+});
+
+/* ---------- step navigation ---------- */
+function showStep(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('p'+n).classList.add('show');
+  document.querySelectorAll('.step').forEach(s=>{
+    const k=+s.dataset.s;
+    s.classList.toggle('active',k===n);
+    s.classList.toggle('done',k<n);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function prev(cur){ showStep(cur-1); }
+function next(cur){ if(validate(cur)) showStep(cur+1); }
+
+/* ---------- helpers ---------- */
+function setErr(id,on){
+  const m=document.getElementById('e-'+id); if(m) m.classList.toggle('show',on);
+  const f=document.getElementById(id); if(f) f.classList.toggle('bad',on);
+}
+function getChecked(groupId){
+  const g=document.getElementById(groupId);
+  const vals=[];
+  g.querySelectorAll('input:checked').forEach(i=>{
+    if(i.value==='__other__'){
+      const t=i.closest('.opt').querySelector('.otherbox').value.trim();
+      if(t) vals.push('Khác: '+t);
+    } else vals.push(i.value);
+  });
+  return vals;
+}
+function getRadio(groupId){
+  const g=document.getElementById(groupId);
+  const sel=g.querySelector('input:checked');
+  if(!sel) return '';
+  if(sel.value==='__other__'){
+    const t=sel.closest('.opt').querySelector('.otherbox').value.trim();
+    return t? 'Khác: '+t : '';
+  }
+  return sel.value;
+}
+
+/* ---------- validation per step ---------- */
+function validate(step){
+  let ok=true;
+  if(step===1){
+    const email=document.getElementById('email').value.trim();
+    const valid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    setErr('email',!valid); if(!valid)ok=false;
+    ['hoTen','maSoNV'].forEach(id=>{
+      const bad=!document.getElementById(id).value.trim();
+      setErr(id,bad); if(bad)ok=false;
+    });
+  }
+  if(step===2){
+    ['tenCongTy','thongTinLienHe'].forEach(id=>{
+      const bad=!document.getElementById(id).value.trim();
+      setErr(id,bad); if(bad)ok=false;
+    });
+    const mqh=getRadio('grp-moiQuanHe');
+    setErr('moiQuanHe',!mqh); if(!mqh)ok=false;
+  }
+  if(step===3){
+    [['grp-solutionsFit','solutionsFit'],['grp-productFit','productFit'],['grp-thiTruong','thiTruong']]
+    .forEach(([g,id])=>{
+      const bad=getChecked(g).length===0;
+      setErr(id,bad); if(bad)ok=false;
+    });
+    const noteBad=!document.getElementById('ghiChu').value.trim();
+    setErr('ghiChu',noteBad); if(noteBad)ok=false;
+  }
+  return ok;
+}
+
+/* ---------- submit ---------- */
+async function submitForm(){
+  if(!validate(3)) return;
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='Đang gửi…';
+
+  const payload={
+    email:document.getElementById('email').value.trim(),
+    hoTen:document.getElementById('hoTen').value.trim(),
+    maSoNV:document.getElementById('maSoNV').value.trim(),
+    tenCongTy:document.getElementById('tenCongTy').value.trim(),
+    thongTinLienHe:document.getElementById('thongTinLienHe').value.trim(),
+    moiQuanHe:getRadio('grp-moiQuanHe'),
+    solutionsFit:getChecked('grp-solutionsFit').join(', '),
+    productFit:getChecked('grp-productFit').join(', '),
+    thiTruong:getChecked('grp-thiTruong').join(', '),
+    ghiChu:document.getElementById('ghiChu').value.trim()
+  };
+
+  try{
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',                 // tránh lỗi CORS với Apps Script
+      body:JSON.stringify(payload)    // gửi dạng text/plain mặc định
+    });
+    showStep('Done');
+  }catch(err){
+    btn.disabled=false; btn.textContent='Gửi đăng ký ✓';
+    alert('Có lỗi khi gửi. Vui lòng kiểm tra kết nối và thử lại nhé.');
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
